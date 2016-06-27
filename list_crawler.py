@@ -7,6 +7,8 @@ import dao
 import time
 from datetime import datetime
 import threading,thread
+from task_model import Task
+import sys
 
 # 条件变量，用于存放阻塞的线程
 cv = threading.Condition()
@@ -26,8 +28,8 @@ def httpRequest(url):
 def parseHtml(page):
     pattern = re.compile('<a href="http://yue.ifeng.com/news/detail_(.*?)" target="_blank">(.*?)</a>',re.S)
     items = re.findall(pattern,page)
-    for item in items:
-        print item[0],item[1]
+    #for item in items:
+    #    print item[0],item[1]
     return items
 
 def savePageList(items):
@@ -48,33 +50,27 @@ def savePage(page):
 
 def now():
     cur = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    print cur
     return cur
 
-def cond_wait(cond,mutex):
-    #cond.acquire()
-    #current_thread = threading.current_thread()
-    #threads.append(current_thread)   
-    #cond.release()
-    
-    #释放、阻塞等待、被唤醒获取锁
-    mutex.release()
-    mutex.wait()    
-    mutex.acquire()
+def cond_wait(cv):
+    cv.wait()    
 
 def cond_signal(cond):
     cond.acquire() 
-    if len(threads) > 0:
-        thread_nofify = threads.pop()
+    cond.notify()
     cond.release()
 
+def build_task(url):
+    task = Task(id=None,priority=0,type=1,state=0,link=url,avaliable_time=now(),start_time=None,end_time=None)
+    return task
+  
 def run():
     while True:
         print "开始处理任务"
         task = dao.select(state=0)       
         cv.acquire()
         while task == None:
-            cv.wait()
+            cond_wait(cv)
         cv.release()
         ret = dao.update(state=1, update_time=now(), id=task.id)
         if ret == 0:
@@ -83,9 +79,12 @@ def run():
         page = httpCrawler(task.link)   
         if task.type == 0:
             print "处理列表任务...."
-            cv.acquire()
-            cv.notify()
-            cv.release()
+            for item in page:
+                prefix = "http://yue.ifeng.com/news/detail_"
+                link = prefix + item[0]
+                new_task = build_task(link)
+                dao.insert(new_task)
+                cond_signal(cv)
             dao.update(state=2, update_time=now(), id=task.id)
         if task.type == 1:
 	    print "抓页面...."    
@@ -93,5 +92,11 @@ def run():
         print "任务完成"
 
 if __name__ == '__main__':
-    thread.start_new_thread(run())
-    thread.start_new_thread(run())
+    num = sys.argv[1]
+    if num == None:
+        num = 1
+    else:
+        num = int(num)
+    print "开启" + str(num) +"个线程处理"
+    for i in range(num):
+        thread.start_new_thread(run())

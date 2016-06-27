@@ -47,6 +47,24 @@ def update(state,update_time,id):
         db.close()
     return count
 
+def insert(task):
+    db = connection()
+    cursor = db.cursor()
+    sql = "insert into task (priority,type,state,link,avaliable_time) values ( \
+            '%d','%d','%d','%s','%s')" % (task.priority,task.type,task.state,task.link, \
+            task.avaliable_time) 
+    try:
+        count = 0
+        count = cursor.execute(sql)
+        db.commit()
+    except Exception,e:
+        print "Error insert"
+        print e
+        db.rollback()
+    finally:
+        db.close()
+    return count
+   
 def lock(table_name):
     db = connection()
     cursor = db.cursor()
@@ -86,7 +104,7 @@ if __name__ == '__main__':
         if command == None:
              print "参数错误: query,update,lock"
              sys.exit()
-        if command == "query" or command == "update":
+        if command == "query" or command == "update" or command == "insert":
              param = sys.argv[2]
              state = int(param)
              if command == "query":
@@ -100,6 +118,11 @@ if __name__ == '__main__':
                  print count==1
                  print "======更新完成 ===="
                  count = update(state=2,update_time=task.avaliable_time,id=task.id)
+                 print count==1
+             if command == "insert":
+                 task = select(state)
+                 task.id = None
+                 count = insert(task) 
                  print count==1
         elif command == "lock":
              param = sys.argv[2]
