@@ -11,7 +11,7 @@ from task_model import Task
 import sys,os
 
 
-# 条件变量，用于存放阻塞的线程
+# 条件变量
 cv = threading.Condition()
 
 def http_crawler(url,type):
