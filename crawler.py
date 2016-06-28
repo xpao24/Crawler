@@ -8,8 +8,10 @@ import MySQLdb
 from datetime import datetime
 import dao
 from task_model import Task
+from bloom_filter import BloomFilter
 
 def store(url):
+    print url
     task = Task(id=None,priority=0,type=1,state=0,link=url,\
                 avaliable_time=now(),start_time=None,end_time=None)
     dao.insert(task)
@@ -38,8 +40,8 @@ def main():
     inital_page = "http://yue.ifeng.com"
 
     url_queue  = Queue.Queue()
-    seen = set()
-    seen.add(inital_page)
+    filter = BloomFilter()
+    filter.add(inital_page)  
     url_queue.put(inital_page)
 
     while(True):
@@ -52,8 +54,8 @@ def main():
             print "Error extract_urls"
             print e
 	for next_url in urls:
-	    if next_url not in seen:
-                seen.add(next_url)
+	    if filter.notcontains(next_url):
+                filter.add(next_url)
 	        url_queue.put(next_url)
   
 if __name__ == "__main__":

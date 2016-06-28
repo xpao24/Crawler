@@ -21,7 +21,6 @@ class BloomFilter(object):
     def notcontains(self,ele):
         for i in self.seeds:
             hash = mmh3.hash(ele,i) % self.size 
-            print hash
             if self.bitset[hash] == False:
                 return True
         return False
@@ -29,9 +28,8 @@ class BloomFilter(object):
     def add(self,ele):
         for i in self.seeds:
             hash = mmh3.hash(ele,i) % self.size
-            print hash
             self.bitset[hash] = True
 
-f = BloomFilter(2*20)
-f.add("123")
-print f.notcontains("123")
+#f = BloomFilter(2*20)
+#f.add("123")
+#print f.notcontains("123")
