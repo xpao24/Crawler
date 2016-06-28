@@ -5,13 +5,14 @@ import Queue
 import urllib2
 import re
 import MySQLdb
+from datetime import datetime
+import dao
+from task_model import Task
 
 def store(url):
-    page = httpRequest(url)
-    #Save source file
-    webFile = open('pageList.html','wb')
-    webFile.write(page)
-    webFile.close()
+    task = Task(id=None,priority=0,type=1,state=0,link=url,\
+                avaliable_time=now(),start_time=None,end_time=None)
+    dao.insert(task)
 
 def httpRequest(url):
     #Request source file
@@ -24,25 +25,37 @@ def extract_urls(url):
     page = httpRequest(url)
     pattern = re.compile('<a href="(.*?)" target="_blank">(.*?)</a>',re.S)
     items = re.findall(pattern,page)
+    urls = []
     for item in items:
-        print item[0],item[1]
-    return items
+        urls.append(item[0])
+    return urls
 
-inital_page = "http://www.thepaper.cn/channel_25950"
+def now():
+    cur = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    return cur
 
-url_queue  = Queue.Queue()
-seen = set()
+def main():
+    inital_page = "http://yue.ifeng.com"
 
-seen.add(inital_page)
-url_queue.put(inital_page)
+    url_queue  = Queue.Queue()
+    seen = set()
+    seen.add(inital_page)
+    url_queue.put(inital_page)
 
-while(True):
-    current_url = url_queue.get()
-    print current_url
-    store(current_url)
-    urls = extract_urls(current_url)
-    for next_url in urls:
-        if next_url not in seen:
-            seen.add(next_url)
-            url_queue.put(next_url)
+    while(True):
+        urls = []
+        current_url = url_queue.get() #取队列第一个元素
+        try:
+	    store(current_url)
+	    urls = extract_urls(current_url) #抽取页面中的链接
+        except Exception,e:
+            print "Error extract_urls"
+            print e
+	for next_url in urls:
+	    if next_url not in seen:
+                seen.add(next_url)
+	        url_queue.put(next_url)
+  
+if __name__ == "__main__":
+    main()
 
