@@ -1,7 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- encoding:utf-8 -*-
 
-import MySQLdb
+import pymysql
 from task_model import Task
 import sys
 
@@ -9,7 +9,7 @@ import sys
 def connection() :
     db = None
     if db == None:
-        db = MySQLdb.connect("localhost","root","123456","news_crawler")
+        db = pymysql.connect(host="localhost",port=3306,user="root",passwd="Huas123",db="jobs_crawler",charset="utf8")
     return db
 
 def select(state):
@@ -24,7 +24,7 @@ def select(state):
         else:
             task = Task(id=row[0],priority=row[1],type=row[2],state=row[3],link=row[4],avaliable_time=row[5],start_time=row[6],end_time=row[7])
     except:
-        print "Error : unable to fetch daba" 
+        print("Error : unable to fetch daba")
     db.close()
     return task
 
@@ -39,9 +39,9 @@ def update(state,update_time,id):
         count = 0
         count = cursor.execute(sql)
         db.commit()
-    except Exception,e:
-        print "Error cann't update "
-        print e 
+    except Exception as e:
+        print("Error cann't update ")
+        print(e) 
         db.rollback()
     finally:
         db.close()
@@ -50,16 +50,17 @@ def update(state,update_time,id):
 def insert(task):
     db = connection()
     cursor = db.cursor()
-    sql = "insert into task (priority,type,state,link,avaliable_time) values ( \
-            '%d','%d','%d','%s','%s')" % (task.priority,task.type,task.state,task.link, \
-            task.avaliable_time) 
+    sql = "insert into task (priority,type,state,link,title,tag,ctime,utime) values ( \
+            '%d','%d','%d','%s','%s','%s','%d','%d')" % (task.priority,task.type,task.state,task.link, \
+                task.title,task.tag,task.ctime,task.utime) 
     try:
         count = 0
+        # print("insert:",sql)
         count = cursor.execute(sql)
         db.commit()
-    except Exception,e:
-        print "Error insert"
-        print e
+    except Exception as e:
+        print("Error insert")
+        print(e)
         db.rollback()
     finally:
         db.close()
@@ -70,12 +71,12 @@ def lock(table_name):
     cursor = db.cursor()
     sql = "lock tables "+ table_name +" write;" 
     try:
-       print sql
+       print(sql)
        result = cursor.execute(sql)
        db.commit()
-    except Exception,e:
-       print "Error lock failed" 
-       print e
+    except Exception as e:
+       print("Error lock failed")
+       print(e)
        db.rollback()
     finally:
        db.close()
@@ -85,13 +86,13 @@ def unlock():
     cursor = db.cursor()
     sql = "unlock tables"
     try:
-       print sql
+       print(sql)
        result = cursor.execute(sql)
        db.commit()
-       print result
-    except Exception,e:
-       print "Error lock failed"
-       print e
+       print(result)
+    except Exception as e:
+       print("Error lock failed")
+       print(e)
        db.rollback()
     finally:
        db.close()
@@ -100,41 +101,42 @@ def unlock():
 if __name__ == '__main__':
     if len(sys.argv) > 2:
         command = sys.argv[1]
-        print command
+        print(command)
         if command == None:
-             print "参数错误: query,update,lock"
+             print("参数错误: query,update,lock")
              sys.exit()
         if command == "query" or command == "update" or command == "insert":
              param = sys.argv[2]
              state = int(param)
              if command == "query":
-                 print "======查询====="
+                 print("======查询=====")
                  task = select(state)
-                 print task.id,task.state,task.avaliable_time
+                 if task != None:
+                    print(task.id,task.state)
              if command == "update":
                  task = select(1)
-                 print "======更新 进行中====="
+                 print("======更新 进行中=====")
                  count = update(state=1,update_time=task.avaliable_time,id=task.id)
-                 print count==1
-                 print "======更新完成 ===="
+                 print(count==1)
+                 print("======更新完成 ====")
                  count = update(state=2,update_time=task.avaliable_time,id=task.id)
-                 print count==1
+                 print(count==1)
              if command == "insert":
                  task = select(state)
                  task.id = None
                  count = insert(task) 
-                 print count==1
+                 print(count==1)
         elif command == "lock":
              param = sys.argv[2]
              table_name = param
              if table_name != None:
-                 print table_name + "locked!" 
+                 print(table_name + "locked!")
                  lock(table_name)
              else:
-                 print "请输入表名"
+                 print("请输入表名")
                  sys.exit()
         else:
-            print "不支持的命令"
+            print("不支持的命令")
     else:
-        print "for example : python dao.py query 1 "
+        print("for example : python dao.py query 1 ")
         sys.exit()
